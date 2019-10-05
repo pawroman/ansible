@@ -112,3 +112,21 @@ def bytes_to_human(size, isbits=False, unit=None):
         suffix = base
 
     return '%.2f %s' % (size / limit, suffix)
+
+
+def percent_format_multiple(string, format_value, argument_name_hint="string"):
+    """Format a string using %-formatting, allowing multiple occurrences of the format value.
+
+    Example:
+
+    >>> percent_format_multiple('I see %s, %s everywhere', 'percents')
+    'I see percents, percents everywhere'
+    """
+    format_marker_count = string.count("%s")
+
+    if format_marker_count == 0:
+        raise ValueError("%s must contain %%s: %s" % (argument_name_hint, string))
+
+    format_tuple = (format_value,) * format_marker_count
+
+    return string % format_tuple
