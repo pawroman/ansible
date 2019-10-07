@@ -208,6 +208,7 @@ import tempfile
 
 # import module snippets
 from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.common.text.formatters import percent_format_multiple
 from ansible.module_utils.six import b
 from ansible.module_utils._text import to_bytes, to_native
 
@@ -221,9 +222,13 @@ def write_changes(module, b_lines, dest):
     validate = module.params.get('validate', None)
     valid = not validate
     if validate:
-        if "%s" not in validate:
-            module.fail_json(msg="validate must contain %%s: %s" % (validate))
-        (rc, out, err) = module.run_command(to_bytes(validate % tmpfile, errors='surrogate_or_strict'))
+        try:
+            validate_command = percent_format_multiple(validate, tmpfile,
+                                                       argument_name_hint='validate')
+        except ValueError as err:
+            module.fail_json(msg=err.args[0])
+
+        (rc, out, err) = module.run_command(to_bytes(validate_command, errors='surrogate_or_strict'))
         valid = rc == 0
         if rc != 0:
             module.fail_json(msg='failed to validate: '

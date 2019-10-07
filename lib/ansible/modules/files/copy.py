@@ -273,6 +273,7 @@ import traceback
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.common.process import get_bin_path
+from ansible.module_utils.common.text.formatters import percent_format_multiple
 from ansible.module_utils._text import to_bytes, to_native
 from ansible.module_utils.six import PY3
 
@@ -642,9 +643,15 @@ def main():
                         module.set_owner_if_different(src, owner, False)
                     if group is not None:
                         module.set_group_if_different(src, group, False)
-                    if "%s" not in validate:
-                        module.fail_json(msg="validate must contain %%s: %s" % (validate))
-                    (rc, out, err) = module.run_command(validate % src)
+
+                    try:
+                        validate_command = percent_format_multiple(validate, src,
+                                                                   argument_name_hint="validate")
+                    except ValueError as err:
+                        module.fail_json(msg=err.args[0])
+
+                    (rc, out, err) = module.run_command(validate_command)
+
                     if rc != 0:
                         module.fail_json(msg="failed to validate", exit_status=rc, stdout=out, stderr=err)
                 b_mysrc = b_src

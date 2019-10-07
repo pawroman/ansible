@@ -73,7 +73,8 @@ options:
   validate:
     description:
     - The validation command to run before copying into place.
-    - The path to the file to validate is passed in via '%s' which must be present as in the sshd example below.
+    - The path to the file to validate is passed in via '%s' which must be present at least once,
+      as in the sshd example below.
     - The command is passed securely so shell features like expansion and pipes won't work.
     type: str
     version_added: '2.0'
@@ -113,6 +114,7 @@ import re
 import tempfile
 
 from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.common.text.formatters import percent_format_multiple
 from ansible.module_utils.six import b, indexbytes
 from ansible.module_utils._text import to_native
 
@@ -235,7 +237,13 @@ def main():
 
     if path_hash != dest_hash:
         if validate:
-            (rc, out, err) = module.run_command(validate % path)
+            try:
+                validate_command = percent_format_multiple(validate, path,
+                                                           argument_name_hint='validate')
+            except ValueError as err:
+                module.fail_json(msg=err.args[0])
+
+            (rc, out, err) = module.run_command(validate_command)
             result['validation'] = dict(rc=rc, stdout=out, stderr=err)
             if rc != 0:
                 cleanup(path)

@@ -154,6 +154,7 @@ EXAMPLES = r'''
 import re
 import os
 import tempfile
+from ansible.module_utils.common.text.formatters import percent_format_multiple
 from ansible.module_utils.six import b
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils._text import to_bytes
@@ -169,9 +170,13 @@ def write_changes(module, contents, path):
     validate = module.params.get('validate', None)
     valid = not validate
     if validate:
-        if "%s" not in validate:
-            module.fail_json(msg="validate must contain %%s: %s" % (validate))
-        (rc, out, err) = module.run_command(validate % tmpfile)
+        try:
+            validate_command = percent_format_multiple(validate, tmpfile,
+                                                       argument_name_hint='validate')
+        except ValueError as err:
+            module.fail_json(msg=err.args[0])
+
+        (rc, out, err) = module.run_command(validate_command)
         valid = rc == 0
         if rc != 0:
             module.fail_json(msg='failed to validate: '
